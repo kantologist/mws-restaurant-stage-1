@@ -4,6 +4,57 @@ let restaurants,
 var newMap
 var markers = []
 
+
+
+
+// register service worker
+if('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').then((reg) => {
+            if (!navigator.serviceWorker.controller) {
+                return;
+            }
+
+            if (reg.waiting) {
+                updateReady(reg.waiting);
+                return;
+            }
+
+            if (reg.installing) {
+                trackInstalling(reg.installing);
+                return;
+            }
+
+            reg.addEventListener('updatefound', function () {
+                trackInstalling(reg.installing);
+            });
+        });
+    });
+}
+
+
+// function for handling errors
+const handleErrors = (response) => {
+    if(!response) {
+        throw Error(response.statusText);
+    }
+    return response;
+};
+
+
+const updateReady = (worker) => {
+    worker.postMessage({action: 'skipWaiting'});
+};
+
+const trackInstalling = (worker) => {
+    worker.addEventListener('statechange', function() {
+        if (worker.state == 'installed') {
+            updateReady(worker);
+        }
+    });
+};
+
+
 /**
  * Fetch neighborhoods and cuisines as soon as the page is loaded.
  */
