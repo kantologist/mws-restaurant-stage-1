@@ -2,22 +2,22 @@ let staticacheName = 'restaurant-static-v4';
 
 self.addEventListener('install', (event) => {
     const urlsToCache = [
-        '/',
-        '/restaurant.html',
-        '/main.js',
-        '/restaurant_info.js',
-        '/dbhelper.js',
-        '/css/styles.css',
-        '/img/1.jpg',
-        '/img/2.jpg',
-        '/img/3.jpg',
-        '/img/4.jpg',
-        '/img/5.jpg',
-        '/img/6.jpg',
-        '/img/7.jpg',
-        '/img/8.jpg',
-        '/img/9.jpg',
-        '/img/10.jpg',
+        '/mws-restaurant-stage-1/',
+        '/mws-restaurant-stage-1/restaurant.html',
+        '/mws-restaurant-stage-1/main.js',
+        '/mws-restaurant-stage-1/restaurant_info.js',
+        '/mws-restaurant-stage-1/dbhelper.js',
+        '/mws-restaurant-stage-1/css/styles.css',
+        '/mws-restaurant-stage-1/img/1.jpg',
+        '/mws-restaurant-stage-1/img/2.jpg',
+        '/mws-restaurant-stage-1/img/3.jpg',
+        '/mws-restaurant-stage-1/img/4.jpg',
+        '/mws-restaurant-stage-1/img/5.jpg',
+        '/mws-restaurant-stage-1/img/6.jpg',
+        '/mws-restaurant-stage-1/img/7.jpg',
+        '/mws-restaurant-stage-1/img/8.jpg',
+        '/mws-restaurant-stage-1/img/9.jpg',
+        '/mws-restaurant-stage-1/img/10.jpg',
     ];
     event.waitUntil(
         caches.open(staticacheName).then((cache) => {
