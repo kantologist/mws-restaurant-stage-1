@@ -1,5 +1,11 @@
 # Mobile Web Specialist Certification Course
 ---
+## How to run locally:
+
+localhost url: [http:localhost:8000/mws-restaurant-stage-1/](http:localhost:8000/mws-restaurant-stage-1/)
+online url: [https://kantologist.github.io/mws-restaurant-stage-1/](https://kantologist.github.io/mws-restaurant-stage-1/)
+
+
 #### _Three Stage Course Material Project - Restaurant Reviews_
 
 ## Project Overview: Stage 1
