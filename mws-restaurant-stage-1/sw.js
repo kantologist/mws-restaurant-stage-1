@@ -17,7 +17,7 @@ self.addEventListener('install', (event) => {
         '/mws-restaurant-stage-1/img/7.webp',
         '/mws-restaurant-stage-1/img/8.webp',
         '/mws-restaurant-stage-1/img/9.webp',
-        '/mws-restaurant-stage-1/img/10.Webp',
+        '/mws-restaurant-stage-1/img/10.webp',
     ];
     event.waitUntil(
         caches.open(staticacheName).then((cache) => {
