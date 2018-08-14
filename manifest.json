@@ -3,13 +3,13 @@
   "name": "Restaurant Reviews",
   "icons": [
     {
-      "src": "/mws-restaurant-stage-1/img/1.jpg",
-      "type": "image/jpg",
+      "src": "/mws-restaurant-stage-1/img/1.webp",
+      "type": "image/webp",
       "sizes": "192x192"
     },
     {
-      "src": "/mws-restaurant-stage-1/img/1.jpg",
-      "type": "image/jpg",
+      "src": "/mws-restaurant-stage-1/img/1.webp",
+      "type": "image/webp",
       "sizes": "512x512"
     }
   ],
