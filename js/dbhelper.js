@@ -1,6 +1,70 @@
+import idb from 'idb';
+
 /**
  * Common database helper functions.
  */
+
+
+
+// function for opening currency database
+const openRestaurantDataBase = () =>  {
+    if (!navigator.serviceWorker) {
+        return Promise.resolve();
+    }
+
+    return idb.open('restaurant', 1, (upgradeDb) => {
+        const store = upgradeDb.createObjectStore('restaurants', {
+            keyPath: 'id'
+        })
+    })
+};
+
+const fetchRestaurantsLocally = () =>  {
+    return openRestaurantDataBase(). then((db) => {
+        if(!db) return;
+        const store = db.transaction('restaurants').objectStore('restaurants');
+
+        return store.getAll();
+    })
+};
+
+const fetchRestaurantsOnline = ()  => {
+    return fetch(DBHelper.DATABASE_URL)
+        .then(handleErrors)
+        .then(
+            (response) => {
+                // console.log(response.json());
+                return response.json();
+            })
+        .then(
+            (restaurants) => {
+                openRestaurantDataBase().then((db) => {
+                    if (!db) return;
+                    const tx = db.transaction('restaurants', 'readwrite');
+                    const store = tx.objectStore('restaurants');
+                    restaurants.forEach((restaurant) => {
+                        store.put(restaurant);
+                    });
+                });
+                return fetchRestaurantsLocally();
+            }).catch((error) => {
+            console.log(error);
+            return fetchRestaurantsLocally();
+    });
+};
+
+
+// function for handling errors
+const handleErrors = (response) =>  {
+    if(!response) {
+        return fetchRestaurantsLocally();
+        // throw Error(response.statusText);
+    }
+    return response;
+};
+
+
+
 class DBHelper {
 
   /**
@@ -8,27 +72,32 @@ class DBHelper {
    * Change this to restaurants.json file location on your server.
    */
   static get DATABASE_URL() {
-    const port = 8000 // Change this to your server port
-    return `http://localhost:${port}/data/restaurants.json`;
+    const port = 1337; // Change this to your server port
+    return `http://localhost:${port}/restaurants`;
   }
+
 
   /**
    * Fetch all restaurants.
    */
   static fetchRestaurants(callback) {
-    let xhr = new XMLHttpRequest();
-    xhr.open('GET', DBHelper.DATABASE_URL);
-    xhr.onload = () => {
-      if (xhr.status === 200) { // Got a success response from server!
-        const json = JSON.parse(xhr.responseText);
-        const restaurants = json.restaurants;
-        callback(null, restaurants);
-      } else { // Oops!. Got an error from server.
-        const error = (`Request failed. Returned status of ${xhr.status}`);
-        callback(error, null);
-      }
-    };
-    xhr.send();
+    // let xhr = new XMLHttpRequest();
+    // xhr.open('GET', DBHelper.DATABASE_URL);
+    // xhr.onload = () => {
+    //   if (xhr.status === 200) { // Got a success response from server!
+    //       const restaurants = JSON.parse(xhr.responseText);
+    //     // const restaurants = json.restaurants;
+    //     callback(null, restaurants);
+    //   } else { // Oops!. Got an error from server.
+    //     const error = (`Request failed. Returned status of ${xhr.status}`);
+    //     callback(error, null);
+    //   }
+    // };
+    // xhr.send();
+
+      fetchRestaurantsOnline().then((restaurants) => {
+          callback(null, restaurants);
+      })
   }
 
   /**
@@ -150,7 +219,7 @@ class DBHelper {
    * Restaurant image URL.
    */
   static imageUrlForRestaurant(restaurant) {
-    return (`/img/${restaurant.photograph}`);
+    return (`/mws-restaurant-stage-1/img/${restaurant.photograph?restaurant.photograph:restaurant.id}.webp`);
   }
 
   /**
@@ -178,4 +247,6 @@ class DBHelper {
   } */
 
 }
+
+export default DBHelper;
 
