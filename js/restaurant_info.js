@@ -2,6 +2,62 @@ let restaurant;
 var newMap;
 import DBHelper from "./dbhelper";
 
+
+
+// register service worker
+if('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').then((reg) => {
+            if (!navigator.serviceWorker.controller) {
+                return;
+            }
+
+            if (reg.waiting) {
+                updateReady(reg.waiting);
+                return;
+            }
+
+            if (reg.installing) {
+                trackInstalling(reg.installing);
+                return;
+            }
+
+            reg.addEventListener('updatefound', function () {
+                trackInstalling(reg.installing);
+            });
+        });
+    });
+}
+
+
+// ask for notification permission
+Notification.requestPermission();
+
+// function for handling errors
+const handleErrors = (response) => {
+    if(!response) {
+        throw Error(response.statusText);
+    }
+    return response;
+};
+
+// DBHelper.fetchRestaurantsOnline();
+
+
+const updateReady = (worker) => {
+    worker.postMessage({action: 'skipWaiting'});
+};
+
+const trackInstalling = (worker) => {
+    worker.addEventListener('statechange', function() {
+        if (worker.state == 'installed') {
+            updateReady(worker);
+        }
+    });
+};
+
+
+
 /**
  * Initialize map as soon as the page is loaded.
  */
@@ -151,6 +207,67 @@ let fillReviewsHTML = (reviews = self.restaurant.reviews) => {
   title.setAttribute("tabindex", "0");
   title.innerHTML = 'Reviews';
   container.appendChild(title);
+
+  // favourite  button
+    const fav  = document.createElement("input");
+    fav.setAttribute('type',"checkbox");
+    fav.setAttribute("id", "fav_button");
+    fav.setAttribute("tabindex", "0");
+    fav.setAttribute('name',"favourite");
+    fav.setAttribute("aria-labelledby", "fav_label");
+    fav.setAttribute("role", "checkbox");
+    if(self.restaurant.is_favorite === "true") {
+        fav.checked = true;
+        fav.setAttribute("aria-checked", "true");
+    } else {
+        fav.checked = false;
+        fav.setAttribute("aria-checked", "false");
+    }
+
+    const fav_label = document.createElement("label");
+    fav_label.setAttribute("id", "fav_label");
+    fav_label.setAttribute("for", "favourite");
+    fav_label.innerHTML = "Favourite?";
+
+    fav.addEventListener("change", (e) => {
+        fav.disabled = true;
+        if (fav.checked == true){
+            fetch(`http://localhost:1337/restaurants/${self.restaurant.id}/?is_favorite=true`, {
+                method: "PUT"
+            }).then((response) => {
+                if (response.status == 200) fav.disabled = false;
+                else {
+                    fav.checked = false;
+                    fav.setAttribute("aria-checked", "false");
+                    fav.disabled = false;}
+            }).catch((error) => {
+                console.log(error);
+                fav.checked = false;
+                fav.setAttribute("aria-checked", "false");
+                fav.disabled = false;
+            })
+        } else {
+            fetch(`http://localhost:1337/restaurants/${self.restaurant.id}/?is_favorite=false`, {
+                method: "PUT"
+            }).then((response) => {
+                if (response.status == 200) fav.disabled = false;
+                else {
+                    fav.checked = true;
+                    fav.setAttribute("aria-checked", "true");
+                    fav.disabled = false;
+                }
+            }).catch((error) => {
+                console.log(error);
+                fav.checked = true;
+                fav.setAttribute("aria-checked", "true");
+                fav.disabled = false;
+            })
+        }
+    });
+
+  container.appendChild(fav_label);
+  container.appendChild(fav);
+
   const form = document.createElement('form');
   form.setAttribute("id", "review_form");
   form.setAttribute("method", "post");
@@ -175,8 +292,10 @@ let fillReviewsHTML = (reviews = self.restaurant.reviews) => {
   name.setAttribute("tabindex", "0");
   name.required = true;
   name.setAttribute('name',"username");
+  name.setAttribute("aria-labelledby", "name_label");
 
   const name_label = document.createElement("label");
+  name_label.setAttribute("id", "name_label");
   name_label.setAttribute("for", "username");
   name_label.setAttribute("tabindex", "0");
   name_label.innerHTML = "Name";
@@ -185,6 +304,7 @@ let fillReviewsHTML = (reviews = self.restaurant.reviews) => {
   // rating.setAttribute('type',"text");
   rating.setAttribute("tabindex", "0");
   rating.setAttribute("id", "user_rating");
+  rating.setAttribute("aria-labelledby", "rating_label");
   rating.required = true;
   rating.setAttribute('name',"rating");
   for (let i=1; i<6; i++ ){
@@ -195,6 +315,7 @@ let fillReviewsHTML = (reviews = self.restaurant.reviews) => {
   }
 
   const rating_label = document.createElement("label");
+  rating_label.setAttribute("id", "rating_label");
   rating_label.setAttribute("for", "rating");
   rating_label.setAttribute("tabindex", "0");
   rating_label.innerHTML = "Rating";
@@ -202,11 +323,13 @@ let fillReviewsHTML = (reviews = self.restaurant.reviews) => {
   const comment  = document.createElement("textarea");
   // comment.setAttribute('type',"text");
   comment.setAttribute("tabindex", "0");
+  comment.setAttribute("aria-labelledby", "comment_label");
   comment.setAttribute("id", "user_comment");
   comment.required = true;
   comment.setAttribute('name',"comment");
 
   const comment_label = document.createElement("label");
+  comment_label.setAttribute("id", "comment_label");
   comment_label.setAttribute("for", "comment");
   comment_label.setAttribute("tabindex", "0");
   comment_label.innerHTML = "Comments";
