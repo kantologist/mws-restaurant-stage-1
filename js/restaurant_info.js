@@ -57,12 +57,12 @@ let initMap = () => {
  */
 let fetchRestaurantFromURL = (callback) => {
   if (self.restaurant) { // restaurant already fetched!
-    callback(null, self.restaurant)
+    callback(null, self.restaurant);
     return;
   }
   const id = getParameterByName('id');
   if (!id) { // no id found in URL
-    error = 'No restaurant id in URL'
+    error = 'No restaurant id in URL';
     callback(error, null);
   } else {
     DBHelper.fetchRestaurantById(id, (error, restaurant) => {
@@ -75,7 +75,7 @@ let fetchRestaurantFromURL = (callback) => {
       callback(null, restaurant)
     });
   }
-}
+};
 
 /**
  * Create restaurant HTML and add it to the webpage
@@ -103,8 +103,8 @@ let fillRestaurantHTML = (restaurant = self.restaurant) => {
   if (restaurant.operating_hours) {
     fillRestaurantHoursHTML();
   }
-  // fill reviews
-  fillReviewsHTML();
+  // fetch reviews
+  fetchReviews();
 };
 
 /**
@@ -128,6 +128,19 @@ let fillRestaurantHoursHTML = (operatingHours = self.restaurant.operating_hours)
   }
 };
 
+
+let fetchReviews = () => {
+    DBHelper.fetchReviewById(self.restaurant.id, (error, reviews) => {
+        if (error) { // Got an error!
+            console.error(error);
+            fillReviewsHTML();
+        } else {
+            self.restaurant.reviews = reviews;
+            fillReviewsHTML();
+        }
+    });
+};
+
 /**
  * Create all reviews HTML and add them to the webpage.
  */
@@ -138,6 +151,116 @@ let fillReviewsHTML = (reviews = self.restaurant.reviews) => {
   title.setAttribute("tabindex", "0");
   title.innerHTML = 'Reviews';
   container.appendChild(title);
+  const form = document.createElement('form');
+  form.setAttribute("id", "review_form");
+  form.setAttribute("method", "post");
+  // form.setAttribute("action", "");
+  form.setAttribute("tabindex", "0");
+
+  // const id  = document.createElement("input");
+  // id.setAttribute('type',"text");
+  // id.setAttribute('name',"id");
+  // id.readOnly = true;
+  // id.setAttribute("tabindex", "0");
+  // id.setAttribute("value", self.restaurant.id);
+  //
+  // const id_label = document.createElement("label");
+  // id_label.setAttribute("for", "id");
+  // id_label.setAttribute("tabindex", "0");
+  // id_label.innerHTML = "Restaurant Id";
+
+  const name  = document.createElement("input");
+  name.setAttribute('type',"text");
+  name.setAttribute("id", "user_name");
+  name.setAttribute("tabindex", "0");
+  name.required = true;
+  name.setAttribute('name',"username");
+
+  const name_label = document.createElement("label");
+  name_label.setAttribute("for", "username");
+  name_label.setAttribute("tabindex", "0");
+  name_label.innerHTML = "Name";
+
+  const rating  = document.createElement("select");
+  // rating.setAttribute('type',"text");
+  rating.setAttribute("tabindex", "0");
+  rating.setAttribute("id", "user_rating");
+  rating.required = true;
+  rating.setAttribute('name',"rating");
+  for (let i=1; i<6; i++ ){
+      const op = document.createElement("option");
+      op.setAttribute("value", `${i}`);
+      op.innerHTML = `${i}`;
+      rating.appendChild(op);
+  }
+
+  const rating_label = document.createElement("label");
+  rating_label.setAttribute("for", "rating");
+  rating_label.setAttribute("tabindex", "0");
+  rating_label.innerHTML = "Rating";
+
+  const comment  = document.createElement("textarea");
+  // comment.setAttribute('type',"text");
+  comment.setAttribute("tabindex", "0");
+  comment.setAttribute("id", "user_comment");
+  comment.required = true;
+  comment.setAttribute('name',"comment");
+
+  const comment_label = document.createElement("label");
+  comment_label.setAttribute("for", "comment");
+  comment_label.setAttribute("tabindex", "0");
+  comment_label.innerHTML = "Comments";
+
+  const s = document.createElement("button");
+  s.setAttribute('type',"submit");
+  s.setAttribute('id', "submit");
+  s.setAttribute("tabindex", "0");
+  s.innerHTML = "Submit";
+  s.setAttribute('value',"Submit");
+
+  // form.appendChild(id_label);
+  // form.appendChild(id);
+
+  form.appendChild(name_label);
+  form.appendChild(name);
+
+  form.appendChild(rating_label);
+  form.appendChild(rating);
+
+  form.appendChild(comment_label);
+  form.appendChild(comment);
+
+  form.appendChild(s);
+
+  form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        // const name  = document.getElementById("user_name");
+        // const rating  = document.getElementById("user_rating");
+        // const comment  = document.getElementById("user_comment");
+        const payload = {"restaurant_id": self.restaurant.id,
+            "name": name.value,
+            "rating": parseInt(rating.value),
+            "comments": comment.value};
+        console.log(payload);
+
+        DBHelper.storeReview(payload, (status) => {
+            switch(status) {
+                case "success":
+                    alert("Review posted");
+                    window.location.reload(false);
+                    break;
+                case "offline":
+                    alert(" You are currently offline. But your data is stored for now.");
+                    window.location.reload(false);
+                    break;
+                default:
+                    alert("something bad happened");
+                    break;
+            }
+        })
+    });
+
+  container.appendChild(form);
 
   if (!reviews) {
     const noReviews = document.createElement('p');
@@ -154,6 +277,7 @@ let fillReviewsHTML = (reviews = self.restaurant.reviews) => {
   container.appendChild(ul);
 };
 
+
 /**
  * Create review HTML and add it to the webpage.
  */
@@ -165,10 +289,10 @@ let createReviewHTML = (review) => {
   name.innerHTML = review.name;
   li.appendChild(name);
 
-  const date = document.createElement('p');
-  date.innerHTML = review.date;
-  date.setAttribute("tabindex", "0");
-  li.appendChild(date);
+  // const date = document.createElement('p');
+  // date.innerHTML = review.updatedAt;
+  // date.setAttribute("tabindex", "0");
+  // li.appendChild(date);
 
   const rating = document.createElement('p');
   rating.innerHTML = `Rating: ${review.rating}`;

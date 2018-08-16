@@ -54,8 +54,8 @@ const commonConfig =merge([
                 {from:__dirname + "/js/sw.js", to: './'},
                 {from:__dirname + "/css/*", to: './'},
                 {from:__dirname + "/img/*", to: './'},
-                {from:__dirname + "/data/*", to: "./"},
-                {from:__dirname + "/manifest.json", to: "./"}
+                {from:__dirname + "/data/*", to: './'},
+                {from:__dirname + "/manifest.json", to: './'}
 
             ]),
             new WriteFilePlugin(),

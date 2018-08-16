@@ -6,7 +6,7 @@ import idb from 'idb';
 
 
 
-// function for opening currency database
+// function for opening restaurants database
 const openRestaurantDataBase = () =>  {
     if (!navigator.serviceWorker) {
         return Promise.resolve();
@@ -19,10 +19,32 @@ const openRestaurantDataBase = () =>  {
     })
 };
 
+// function for opening reviews database
+const openReviewsDataBase = () =>  {
+    if (!navigator.serviceWorker) {
+        return Promise.resolve();
+    }
+
+    return idb.open('review', 1, (upgradeDb) => {
+        const store = upgradeDb.createObjectStore('reviews', {
+            keyPath: 'id'
+        })
+    })
+};
+
 const fetchRestaurantsLocally = () =>  {
     return openRestaurantDataBase(). then((db) => {
         if(!db) return;
         const store = db.transaction('restaurants').objectStore('restaurants');
+
+        return store.getAll();
+    })
+};
+
+const fetchReviewsLocally = () => {
+    return openReviewsDataBase().then((db) => {
+        if(!db) return;
+        const store = db.transaction('reviews').objectStore('reviews');
 
         return store.getAll();
     })
@@ -53,11 +75,79 @@ const fetchRestaurantsOnline = ()  => {
     });
 };
 
+const updateReviewOnline = () => {
+    openReviewsDataBase().then((db) => {
+        if(!db) return;
+        const store = db.transaction('reviews').objectStore('reviews');
+        store.getAll().then((reviews) => {
+            console.log("uploading reviews");
+
+            reviews.forEach((review) => {
+                // console.log(review);
+                if(String(review["id"]).startsWith("offline")){
+                    const payload = {"restaurant_id": review.restaurant_id,
+                        "name": review.name,
+                        "rating": parseInt(review.rating),
+                        "comments": review.comments};
+                    fetch(DBHelper.POST_REVIEW_URL,{
+                        method: 'post',
+                        body: JSON.stringify(payload),
+                    }).then((response) => {
+                        // console.log(response);
+                    }).then((response) => {
+                        const tx = db.transaction('reviews', 'readwrite');
+                        const store = tx.objectStore('reviews');
+                        store.delete(review.id).then(
+                          console.log("deleted")
+                        )}
+                    ).catch((error) => {
+                        console.log(error);
+                    });
+                }
+            });
+        });
+    })
+};
+
+const fetchReviewsOnline = (id)  => {
+    return fetch(DBHelper.get_review_url(id))
+        .then(handleReviewsErrors)
+        .then(
+            (response) => {
+                // console.log(response.json());
+                return response.json();
+            })
+        .then(
+            (reviews) => {
+                openReviewsDataBase().then((db) => {
+                    if (!db) return;
+                    const tx = db.transaction('reviews', 'readwrite');
+                    const store = tx.objectStore('reviews');
+                    reviews.forEach((review) => {
+                        store.put(review);
+                    });
+                });
+                return fetchReviewsLocally();
+            }).catch((error) => {
+            console.log(error);
+            return fetchReviewsLocally();
+        });
+};
+
 
 // function for handling errors
 const handleErrors = (response) =>  {
     if(!response) {
         return fetchRestaurantsLocally();
+        // throw Error(response.statusText);
+    }
+    return response;
+};
+
+// function for handling errors
+const handleReviewsErrors = (response) =>  {
+    if(!response) {
+        return fetchReviewsLocally();
         // throw Error(response.statusText);
     }
     return response;
@@ -74,6 +164,24 @@ class DBHelper {
   static get DATABASE_URL() {
     const port = 1337; // Change this to your server port
     return `http://localhost:${port}/restaurants`;
+  }
+
+  static get POST_REVIEW_URL() {
+      const port = 1337;
+      return `http://localhost:${port}/reviews/`;
+  }
+
+    static get_review_url(id) {
+        const port = 1337;
+        return `http://localhost:${port}/reviews/?restaurant_id=${id}`;
+    }
+
+  static fetchReviews(id, callback) {
+      updateReviewOnline();
+      fetchReviewsOnline(id).then((reviews) => {
+          // console.log(reviews);
+          callback(null, reviews);
+      })
   }
 
 
@@ -100,6 +208,36 @@ class DBHelper {
       })
   }
 
+  static storeReview(payload, callback){
+      fetch(DBHelper.POST_REVIEW_URL,{
+              method: 'post',
+              body: JSON.stringify(payload),
+          }).then((response) => {
+              if(!response) {
+                  openReviewsDataBase().then((db) => {
+                      if (!db) callback("error");
+                      const tx = db.transaction('reviews', 'readwrite');
+                      const store = tx.objectStore('reviews');
+                      store.put(payload);
+                  }).then(callback("offline"))
+              } else {
+                  callback("success")
+              }
+      }).catch((error) => {
+          console.log(error);
+          payload.id = "offline" + String(Date.now());
+          // console.log(payload);
+          openReviewsDataBase().then((db) => {
+              if (!db) callback("error");
+              const tx = db.transaction('reviews', 'readwrite');
+              const store = tx.objectStore('reviews');
+              store.put(payload);
+              // console.log("payload is stored locally");
+              // console.log(payload);
+          }).then(callback("offline"));
+      });
+  }
+
   /**
    * Fetch a restaurant by its ID.
    */
@@ -118,6 +256,27 @@ class DBHelper {
       }
     });
   }
+
+
+    /**
+     * Fetch a review by its Restaurant ID.
+     */
+    static fetchReviewById(id, callback) {
+        // fetch all reviews with proper error handling.
+        DBHelper.fetchReviews(id, (error, reviews) => {
+            if (error) {
+                callback(error, null);
+            } else {
+                const review_list = reviews.filter(r => r.restaurant_id == id);
+                // console.log(review_list);
+                if (review_list.length > 0) { // Got reviews
+                    callback(null, review_list);
+                } else { // Reviews not in database
+                    callback('no reviews', null);
+                }
+            }
+        });
+    }
 
   /**
    * Fetch restaurants by a cuisine type with proper error handling.
